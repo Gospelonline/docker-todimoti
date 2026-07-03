@@ -1,35 +1,35 @@
 Modo D'us, criar uma pasta com nome: GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}
 -----------------------------------------------------------------------------------------
-Abrir configuraÁıes avanÁadas do sistema:
+Abrir configura√ß√µes avan√ßadas do sistema:
 C:\Windows\System32\SystemPropertiesAdvanced.exe 
 -----------------------------------------------------------------------------------------
 Ativando Windows 7/10 online: slmgr /ato
-Trocando a chave de ativaÁ„o: slmgr /ipk "outra_chave"
+Trocando a chave de ativa√ß√£o: slmgr /ipk "outra_chave"
 
-Slmgr /rearm     	       // Utilizamos para limpar resquÌcios de ativaÁıes anteriores.
-Net stop sppsvc     	       // Paramos o serviÁo respons·vel pela validaÁ„o.
+Slmgr /rearm     	       // Utilizamos para limpar resqu√≠cios de ativa√ß√µes anteriores.
+Net stop sppsvc     	       // Paramos o servi√ßo respons√°vel pela valida√ß√£o.
 slmgr -ipk "Informe a chave"   // Inserimos a chave no sistema
-slmgr /ato        	       // ForÁamos a ativaÁ„o
-Net start sppsvc  	       // Reiniciamos o serviÁo
+slmgr /ato        	       // For√ßamos a ativa√ß√£o
+Net start sppsvc  	       // Reiniciamos o servi√ßo
 -----------------------------------------------------------------------------------------
-Tela ativaÁ„o Online: slui 3
-Tela ativaÁ„o por Telefone: slui 4
-Janela para verificar se est· ativado: slmgr /xpr
+Tela ativa√ß√£o Online: slui 3
+Tela ativa√ß√£o por Telefone: slui 4
+Janela para verificar se est√° ativado: slmgr /xpr
 -----------------------------------------------------------------------------------------
 Ativando conta administrador: net user administrador /active:yes
 -----------------------------------------------------------------------------------------
-Bloqueando sess„o de usu·rio: rundll32.exe user32.dll,LockWorkStation
+Bloqueando sess√£o de usu√°rio: rundll32.exe user32.dll,LockWorkStation
 -----------------------------------------------------------------------------------------
-Alterando Fuso: tzutil /s "Central Brazilian Standard Time" (exemplo de Cuiab·)
-Lista os Fusos disponÌveis: tzutil /l
+Alterando Fuso: tzutil /s "Central Brazilian Standard Time" (exemplo de Cuiab√°)
+Lista os Fusos dispon√≠veis: tzutil /l
 -----------------------------------------------------------------------------------------
-Parar ServiÁos de AtualizaÁ„o do Windows:
+Parar Servi√ßos de Atualiza√ß√£o do Windows:
 net stop UsoSvc (Update Orchstrator)
 net stop wuauserv (Windows Update)
 -----------------------------------------------------------------------------------------
-Apagando diretÛrios: rd (remove apenas pastas vazias)
+Apagando diret√≥rios: rd (remove apenas pastas vazias)
 Apagando arquivos: 
-del | erase /f /s /q (/f - forÁa apagar arq. leitura| /s - apaga conte˙do da pasta inteira | /q - apaga sem perguntar)
+del | erase /f /s /q (/f - for√ßa apagar arq. leitura| /s - apaga conte√∫do da pasta inteira | /q - apaga sem perguntar)
 deltree /y *.*
 -----------------------------------------------------------------------------------------
 Limpeza de tabela de cache dns remoto: 
@@ -40,8 +40,8 @@ Limpeza cache dns local:
 ipconfig /flushdns 
 ipconfig /registerdns
 
-Pode tambÈm verificar se tem algum registro no arquivo de Hosts.
-Este arquivo È na m·quina local onde est· testando o comando PING.
+Pode tamb√©m verificar se tem algum registro no arquivo de Hosts.
+Este arquivo √© na m√°quina local onde est√° testando o comando PING.
 Pois se tudo tiver bem com o Servidor DNS, pode ser que no arquivo Host possa ter algum registro que esteja a apontar para o IP errado.
 
 Para encontrar o arquivo hosts, verifique dentro da pasta do SYSTEM32\DRIVERS\ETC, vc tem um arquivo chamado hosts. Ele pode ser alterado com o NOTEPAD.
@@ -49,28 +49,28 @@ Para encontrar o arquivo hosts, verifique dentro da pasta do SYSTEM32\DRIVERS\ET
 mostrando arquivos ocultos: attrib -s -h
 -----------------------------------------------------------------------------------------
 Visualizando processos: tasklist
-Finalizando processo: taskill n∫_identifi
+Finalizando processo: taskill n¬∫_identifi
 -----------------------------------------------------------------------------------------
 Visualizando compartilhamentos: 
 net share, net file, net session
 WMIC SHARE GET CAPTION,NAME,PATH
 -----------------------------------------------------------------------------------------
-Descobrindo a ves„o do Windows 32 ou 64 bits: wmic OS get OSArchitecture
+Descobrindo a ves√£o do Windows 32 ou 64 bits: wmic OS get OSArchitecture
 ID Produto (Windows): wmic OS get serialnumber
-Descobrindo serial e vers„o do Windows: slmgr 
+Descobrindo serial e vers√£o do Windows: slmgr 
 -----------------------------------------------------------------------------------------
-InformaÁıes dos sistema (Hardware/Software): systeminfo / msinfo32 / dxdiag
+Informa√ß√µes dos sistema (Hardware/Software): systeminfo / msinfo32 / dxdiag
 
-capacidade m·xima de memÛria e n∫ de slots disponÌveis: 
+capacidade m√°xima de mem√≥ria e n¬∫ de slots dispon√≠veis: 
 powershell "('{0:N2} GB' -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB))"
 
 wmic MemoryChip get BankLabel, DeviceLocator, Capacity
 wmic memphysical get MaxCapacity, MemoryDevices
 -----------------------------------------------------------------------------------------
-N˙mero de sÈrie PC: wmic bios get serialnumber 
-N˙mero de sÈrie do Windows: wmic path softwareLicensingService get OA3xOriginalProductKey
+N√∫mero de s√©rie PC: wmic bios get serialnumber 
+N√∫mero de s√©rie do Windows: wmic path softwareLicensingService get OA3xOriginalProductKey
 -----------------------------------------------------------------------------------------
-Vers„o do Windows: winver, ver
+Vers√£o do Windows: winver, ver
 -----------------------------------------------------------------------------------------
 Tamanho do HD (diskdrive): wmic diskdrive get size
 Tipo do HD: powershell "Get-PhysicalDisk | Select-Object MediaType, FriendlyName, Size"
@@ -83,7 +83,7 @@ Ativando Firewall:
 netsh firewall set opmode enable
 netsh advfirewall set currentprofile state on
 -----------------------------------------------------------------------------------------
-Descobrindo usu·rio logado:
+Descobrindo usu√°rio logado:
 wmic /node:"nomedocomputador" computersystem get username
 
 wmic computersystem get username
@@ -96,35 +96,35 @@ Exemplo: psexec \\lndcadastro2 cmd
 		wmic product where name="Symantec Endpoint Protection" call uninstall
 
 1.No cmd e digite "wmic" para entrar no Windows Management Instrumentation.
-2.Logo apÛs digite : "product get name,vendor,version" para pegar a lista dos progamas instalados no sistema.
-3.Logo apÛs digite : product where name="nome_programa_a_desinstalar" call uninstall.
-4.Aguarde e ir· uma pedir confirmaÁ„o da operaÁ„o. Tecle " Y " e dÍ enter. ApÛs o tÈrmino o progama foi desinstalado.
+2.Logo ap√≥s digite : "product get name,vendor,version" para pegar a lista dos progamas instalados no sistema.
+3.Logo ap√≥s digite : product where name="nome_programa_a_desinstalar" call uninstall.
+4.Aguarde e ir√° uma pedir confirma√ß√£o da opera√ß√£o. Tecle " Y " e d√™ enter. Ap√≥s o t√©rmino o progama foi desinstalado.
 -----------------------------------------------------------------------------------------
-InstalaÁ„o silenciosa Java: start /w java.exe /s
+Instala√ß√£o silenciosa Java: start /w java.exe /s
 -----------------------------------------------------------------------------------------
 Central de Rede e Compartilhamentos	control /name Microsoft.networkandSharingcenter
-Ferramenta de AdministraÁ„o             control admintools
+Ferramenta de Administra√ß√£o             control admintools
 Adicionar Impressora			control printers
 Adicionar Novo Hardware                 control sysdm.cpl add new hardware
 Adicionar/Remover Programas             control appwiz.cpl
 Propriedades de Data/Hora               control timedate.cpl
-Propriedades de VÌdeo                   control desk.cpl
+Propriedades de V√≠deo                   control desk.cpl
 FindFast                      	        control findfast.cpl
 Pasta Fontes                  	        control fonts
 Propriedades da Internet                control inetcpl.cpl
 Propriedades do Joystick                control joy.cpl
 Propriedades do Teclado                 control main.cpl keyboard
 Propriedades do Mouse                   control main.cpl
-Propriedades de MultimÌdia              control mmsys.cpl
+Propriedades de Multim√≠dia              control mmsys.cpl
 Propriedades da Rede                    control netcpl.cpl
 
-No Windows NT 4.0, a ferramenta Propriedades da Rede È Ncpa.cpl, e n„o Netcpl.cpl
+No Windows NT 4.0, a ferramenta Propriedades da Rede √© Ncpa.cpl, e n√£o Netcpl.cpl
 
 Gerenciamento de Energia (Win95)  	control main.cpl power
 Gerenciamento de Energia (Win98) 	control powercfg.cpl
 Pasta Impressoras      	       		control printers
-ConfiguraÁıes Regionais                 control intl.cpl
-Scanners e C‚meras           	        control sticpl.cpl
+Configura√ß√µes Regionais                 control intl.cpl
+Scanners e C√¢meras           	        control sticpl.cpl
 Propriedades de Som               	control mmsys.cpl sounds
 Propriedades do Sistema        
 -----------------------------------------------------------------------------------------

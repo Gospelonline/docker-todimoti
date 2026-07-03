@@ -1,9 +1,10 @@
 <?php include "menu.php"; ?>
+
 <div class="content" id="content">
+	
   <h2>Comandos MS-DOS</h2>
  
   <div class="card">
-
 		<script language="javascript" type="text/javascript">
 					function iFrameHeight() {
 							var h = 0;
@@ -16,7 +17,6 @@
 							}
 					}
                 </script>
-				
                 <div class="contentpane">
                 <iframe
                 onload="iFrameHeight()" 

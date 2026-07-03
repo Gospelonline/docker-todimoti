@@ -17,7 +17,7 @@ include "menu.php";
 			1. Dê STOP e depois EXIT no Datawedge antigo:<br /><br />
 			<img src="../image/mk500/img1.png"/><br />
 			
-			<ul><li>Apague a pasta /Datawedge já existente no diretório \Application, assim como todos os arquivos DataWedge que existirem na raiz do diretório Application!</li>
+			<ul><li>Apague a pasta \Datawedge já existente no diretório \Application, assim como todos os arquivos DataWedge que existirem na raiz do diretório Application!</li>
 			<li>Exclua todos os arquivo APPLAUCHER.* que estão dentro do diretório \Application;</li>
 
 			<li>Mova o arquivo do diretório \Application\AppCenter.lnk para o diretório \Platform;</li></ul>
