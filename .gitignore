@@ -1,22 +1,16 @@
-# Banco de dados
-mariadb/
-
-# Logs
-logs/
-*.log
-
-# Backups
-*.sql
-*.tar.gz
-backup/
-
 # Variáveis de ambiente
 .env
 
-# Arquivos temporários
-*.swp
-*.tmp
+# Dados do banco
+mariadb/
 
-# macOS / Windows
-.DS_Store
-Thumbs.db
+# Logs
+site/logs/
+
+# Arquivos temporários
+*.log
+
+# Arquivos de backup
+*.bak
+*.old
+*.bkp
