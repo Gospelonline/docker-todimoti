@@ -1,85 +1,316 @@
-<?php include "menu.php"; ?>
+<?php
+/**
+ * CRUD de ativos de rede - Rede Arapongas-PR
+ * Requer: conexao.php existente, com conexão mysqli na variável $con.
+ * A tabela compartilhada é criada pelo arquivo instalar_rede.sql.
+ */
+
+ob_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
+require_once __DIR__ . '/conexao.php';
+
+// Incluir o menu antes de processar operações para respeitar eventual autenticação
+// já implementada nele. A autorização real deve ser validada no login/menu do site.
+include __DIR__ . '/menu.php';
+
+const REDE_FILIAL = 'arp';
+const REDE_TITULO = 'Rede Arapongas-PR';
+
+function rede_h($valor): string {
+    return htmlspecialchars((string)$valor, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function rede_redirect(): void {
+    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+    exit;
+}
+
+if (!isset($_SESSION['rede_csrf'])) {
+    $_SESSION['rede_csrf'] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION['rede_csrf'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!is_string($token) || !hash_equals($csrf, $token)) {
+        http_response_code(403);
+        exit('Solicitação inválida. Atualize a página e tente novamente.');
+    }
+
+    $acao = $_POST['acao'] ?? '';
+
+    try {
+        if ($acao === 'salvar') {
+            $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT) ?: 0;
+            $host = trim((string)($_POST['host'] ?? ''));
+            $ip = trim((string)($_POST['ip'] ?? ''));
+            $mac = trim((string)($_POST['mac'] ?? ''));
+
+            if ($host === '' || $ip === '') {
+                throw new RuntimeException('HOST e IP são obrigatórios.');
+            }
+            if (mb_strlen($host) > 180 || mb_strlen($ip) > 80 || mb_strlen($mac) > 120) {
+                throw new RuntimeException('Um dos campos excede o tamanho permitido.');
+            }
+
+            if ($id > 0) {
+                $stmt = $con->prepare(
+                    'UPDATE rede_filiais
+                     SET host = ?, ip = ?, mac = ?
+                     WHERE id = ? AND filial = ?'
+                );
+                $stmt->bind_param('sssis', $host, $ip, $mac, $id, $filial);
+                $filial = REDE_FILIAL;
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['rede_flash'] = ['tipo' => 'success', 'texto' => 'Equipamento atualizado com sucesso.'];
+            } else {
+                $filial = REDE_FILIAL;
+                $stmt = $con->prepare(
+                    'INSERT INTO rede_filiais (filial, host, ip, mac)
+                     VALUES (?, ?, ?, ?)'
+                );
+                $stmt->bind_param('ssss', $filial, $host, $ip, $mac);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['rede_flash'] = ['tipo' => 'success', 'texto' => 'Equipamento cadastrado com sucesso.'];
+            }
+            rede_redirect();
+        }
+
+        if ($acao === 'excluir') {
+            $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+            if (!$id || $id < 1) {
+                throw new RuntimeException('Registro inválido.');
+            }
+            $filial = REDE_FILIAL;
+            $stmt = $con->prepare('DELETE FROM rede_filiais WHERE id = ? AND filial = ?');
+            $stmt->bind_param('is', $id, $filial);
+            $stmt->execute();
+            $stmt->close();
+            $_SESSION['rede_flash'] = ['tipo' => 'success', 'texto' => 'Equipamento excluído com sucesso.'];
+            rede_redirect();
+        }
+    } catch (Throwable $e) {
+        error_log('[CRUD REDE arp] ' . $e->getMessage());
+        $_SESSION['rede_flash'] = [
+            'tipo' => 'danger',
+            'texto' => ($e instanceof RuntimeException)
+                ? $e->getMessage()
+                : 'Não foi possível concluir a operação. Consulte o log do servidor.'
+        ];
+        rede_redirect();
+    }
+}
+
+// Exportação CSV compatível com Excel (UTF-8 BOM e separador ;)
+if (($_GET['exportar'] ?? '') === 'excel') {
+    $filial = REDE_FILIAL;
+    $stmt = $con->prepare(
+        'SELECT host, ip, mac FROM rede_filiais
+         WHERE filial = ? ORDER BY ip, host'
+    );
+    $stmt->bind_param('s', $filial);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+
+    if (ob_get_level() > 0) { ob_clean(); }
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="rede_arp.csv"');
+    header('X-Content-Type-Options: nosniff');
+
+    $saida = fopen('php://output', 'w');
+    fwrite($saida, "\xEF\xBB\xBF");
+    fputcsv($saida, ['HOST', 'IP', 'MAC'], ';', '"', '\\');
+
+    while ($linha = $resultado->fetch_assoc()) {
+        $campos = [];
+        foreach (['host', 'ip', 'mac'] as $campo) {
+            $valor = (string)$linha[$campo];
+            // Evita que valores iniciados por fórmula sejam executados pelo Excel.
+            if ($valor !== '' && preg_match('/^[=+\-@\\t\\r]/', $valor)) {
+                $valor = "'" . $valor;
+            }
+            $campos[] = $valor;
+        }
+        fputcsv($saida, $campos, ';', '"', '\\');
+    }
+    fclose($saida);
+    $stmt->close();
+    exit;
+}
+
+// Edição
+$editar = null;
+if (isset($_GET['editar'])) {
+    $id = filter_input(INPUT_GET, 'editar', FILTER_VALIDATE_INT);
+    if ($id && $id > 0) {
+        $filial = REDE_FILIAL;
+        $stmt = $con->prepare('SELECT id, host, ip, mac FROM rede_filiais WHERE id = ? AND filial = ?');
+        $stmt->bind_param('is', $id, $filial);
+        $stmt->execute();
+        $editar = $stmt->get_result()->fetch_assoc() ?: null;
+        $stmt->close();
+    }
+}
+
+// Pesquisa e listagem
+$busca = trim((string)($_GET['busca'] ?? ''));
+$filial = REDE_FILIAL;
+if ($busca !== '') {
+    $termo = '%' . $busca . '%';
+    $stmt = $con->prepare(
+        'SELECT id, host, ip, mac FROM rede_filiais
+         WHERE filial = ? AND (host LIKE ? OR ip LIKE ? OR mac LIKE ?)
+         ORDER BY ip, host'
+    );
+    $stmt->bind_param('ssss', $filial, $termo, $termo, $termo);
+} else {
+    $stmt = $con->prepare(
+        'SELECT id, host, ip, mac FROM rede_filiais
+         WHERE filial = ? ORDER BY ip, host'
+    );
+    $stmt->bind_param('s', $filial);
+}
+$stmt->execute();
+$resultado = $stmt->get_result();
+$equipamentos = $resultado->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+$flash = $_SESSION['rede_flash'] ?? null;
+unset($_SESSION['rede_flash']);
+?>
+
 <div class="content" id="content">
-  <h2>Rede Arapongas-PR</h2>
- 
-  <div class="card">
-  				<style type="text/css" media="all">			
-				tr:hover{background: #F5DEB3;color:#000;}		
-				</style>
-  				
-  				<table border="1" width="100%">			
-				
-				<tr align="center" style="background-color:#FF8C00; height: 30px;">
-				    <td><h4 style="margin: 0;">HOST</h4></td>
-				    <td><h4 style="margin: 0;">IP</h4></td>
-				    <td><h4 style="margin: 0;">MAC</h4></td>
-				</tr>	
-				
-				<tr align="center"><td>LINK BLD CLARO/EMBRATEL 50MB | FORTIGATE 40F</td><td>192.168.13.2</td><td>0006F64E3F80</td></tr>
-				<tr align="center"><td>LINK INTERNET OI 50MB | FORTIGATE 40F</td><td>192.168.13.2</td><td>0006F64E3F80</td></tr>
-				
-				<tr align="center"><td>ARPSV01</td><td>192.168.13.5</td><td>40F2E9F4E0C5</td></tr>						
-				<tr align="center"><td>CENTRAL TELFONICA</td><td>192.168.13.8</td><td>00173E1156E8</td></tr>
-				<tr align="center"><td>DDR TELEFONIA</td><td>192.168.13.9</td><td>00173E0105FB</td></tr>
+    <h2><?= rede_h(REDE_TITULO) ?></h2>
 
-				<tr align="center"><td>ARPCAIXA1</td><td>192.168.13.30</td><td>8C89A5FD1870</td></tr>
-				<tr align="center"><td>ARPCAIXA2</td><td>192.168.13.31</td><td>8C89A5FD1774</td></tr>
-				<tr align="center"><td>ARPCAIXA3</td><td>192.168.13.32</td><td>8C89A5FD177C</td></tr>
+    <style>
+        .rede-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+        .rede-actions{display:flex;gap:7px;flex-wrap:wrap}
+        .rede-btn{display:inline-block;padding:9px 14px;border:0;border-radius:5px;text-decoration:none;cursor:pointer;font-size:14px;line-height:1.3}
+        .rede-primary{background:#198754;color:#fff}
+        .rede-secondary{background:#0d6efd;color:#fff}
+        .rede-danger{background:#dc3545;color:#fff}
+        .rede-muted{background:#6c757d;color:#fff}
+        .rede-form{background:#fff;padding:18px;border:1px solid #ddd;border-radius:6px;margin:16px 0}
+        .rede-form label{display:block;font-weight:600;margin:8px 0 5px}
+        .rede-form input{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box}
+        .rede-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+        .rede-table-wrap{overflow-x:auto}
+        .rede-table{width:100%;border-collapse:collapse}
+        .rede-table th{background:#FF8C00;color:#000;padding:10px;text-align:center}
+        .rede-table td{padding:9px;border:1px solid #ddd;text-align:center}
+        .rede-table tbody tr:hover{background:#F5DEB3;color:#000}
+        .rede-alert{padding:12px;border-radius:5px;margin:12px 0}
+        .rede-success{background:#d1e7dd;color:#0f5132}
+        .rede-error{background:#f8d7da;color:#842029}
+        .rede-search{display:flex;gap:7px;flex-wrap:wrap}
+        .rede-search input{padding:9px;border:1px solid #ccc;border-radius:5px;min-width:220px}
+        @media(max-width:700px){.rede-grid{grid-template-columns:1fr}.rede-search input{min-width:0;flex:1}.rede-toolbar{align-items:stretch}}
+    
+        .rede-form label, .rede-form h3 { color: #4A4A4A !important; }
+        </style>
 
-				<tr align="center"><td>ARPCADASTRO1</td><td>192.168.13.33</td><td>4487FCBCD444</td></tr>
-				<tr align="center"><td>ARPESTOQUE</td><td>192.168.13.35</td><td>4487FCBCD8FE</td></tr>
-				<tr align="center"><td>ARPFINANCEIRO</td><td>192.168.13.36</td><td>90E6BA38BB10</td></tr>
-				<tr align="center"><td>ARPSELFCOLOR2</td><td>192.168.13.37</td><td>001FD0FD83CA</td></tr>
-				<tr align="center"><td>ARPSELFCOLOR</td><td>192.168.13.38</td><td>641C67A4B9EA</td></tr>
-				<tr align="center"><td>ARPGERENCIA</td><td>192.168.13.39</td><td>641C676636A4</td></tr>
+    <?php if ($flash): ?>
+        <div class="rede-alert <?= ($flash['tipo'] ?? '') === 'success' ? 'rede-success' : 'rede-error' ?>">
+            <?= rede_h($flash['texto'] ?? '') ?>
+        </div>
+    <?php endif; ?>
 
-				<tr align="center"><td>ARPVENDAS1 (HP T430)</td><td>192.168.13.40</td><td>6C02E04C6239</td></tr>
-				<tr align="center"><td>ARPVENDAS2 (HP T430)</td><td>192.168.13.41</td><td>6C02E04C6221</td></tr>
-				<tr align="center"><td>ARPVENDAS3 (HP T430)</td><td>192.168.13.42</td><td>6C02E04C6222</td></tr>
-				<tr align="center"><td>ARPVENDAS4 (HP T430)</td><td>192.168.13.43</td><td>6C02E04C61EB</td></tr>
-				<tr align="center"><td>ARPVENDAS5 (HP T430)</td><td>192.168.13.44</td><td>6C02E04C6217</td></tr>
-				<tr align="center"><td>ARPVENDAS6 (HP T430)</td><td>192.168.13.45</td><td>6C02E04C607D</td></tr>
-				<tr align="center"><td>ARPVENDAS7 (HP T430)</td><td>192.168.13.46</td><td>6C02E04C61CB</td></tr>
-				<tr align="center"><td>ARPVENDAS8 (HP T430)</td><td>192.168.13.47</td><td>6C02E04C6105</td></tr>
-				<tr align="center"><td>ARPVENDAS9 (HP T430)</td><td>192.168.13.48</td><td>6C02E04C6206</td></tr>
-				<tr align="center"><td>ARPVENDAS10 (HP T430)</td><td>192.168.13.49</td><td>6C02E04C623A</td></tr>
+    <div class="card">
+        <div class="rede-toolbar">
+            <div class="rede-actions">
+                <a class="rede-btn rede-primary" href="#form-rede">+ Novo equipamento</a>
+                <a class="rede-btn rede-secondary" href="?exportar=excel">Exportar Excel</a>
+            </div>
 
-				<tr align="center"><td>ZEBRA (IMPRESSORA DE ETIQUETAS S4M - PSARPZEBRA)</td><td>192.168.13.50</td><td>001CF0D7F3DB</td></tr>		
-				<tr align="center"><td>ZEBRA 2 (IMPRESSORA DE ETIQUETAS ZT-230)</td><td>192.168.13.51</td><td>00074D5BA6E7</td></tr>		
-				<tr align="center"><td>ARPTROCAS (DELL WYSE)</td><td>192.168.13.58</td><td>F4EE08AAC9AB</td></tr>
+            <form method="get" class="rede-search">
+                <input type="search" name="busca" value="<?= rede_h($busca) ?>"
+                       placeholder="Pesquisar HOST, IP ou MAC">
+                <button class="rede-btn rede-secondary" type="submit">Pesquisar</button>
+                <?php if ($busca !== ''): ?>
+                    <a class="rede-btn rede-muted" href="<?= rede_h(strtok($_SERVER['REQUEST_URI'], '?')) ?>">Limpar</a>
+                <?php endif; ?>
+            </form>
+        </div>
 
-				<tr align="center"><td>ARPVENDAS11 (HP T430)</td><td>192.168.13.61</td><td>6C02E04C6117</td></tr>					
-				<tr align="center"><td>ARPVENDAS12 (HP T430)</td><td>192.168.13.62</td><td>6C02E04C620E</td></tr>
-				<tr align="center"><td>ARPVENDAS13 (HP T430)</td><td>192.168.13.63</td><td>6C02E04C6201</td></tr>
-				<tr align="center"><td>ARPVENDAS14 (DELL WYSE)</td><td>192.168.13.64</td><td>F4EE08AACB35</td></tr>
-				
-				<tr align="center"><td>IMPRESSORA LASER DEPOSITO (HP P2050N)</td><td>192.168.13.70</td><td>D4856437DA23</td></tr>
-				<tr align="center"><td>IMPRESSORA LASER FINANCEIRO (HP 1505N)</td><td>192.168.13.71</td><td>00215AFE216E</td></tr>
-				<tr align="center"><td>TERMICA_VENDAS_01 (BEMATECH MP-4200)</td><td>192.168.13.72</td><td>00072529E048</td></tr>	
-				<tr align="center"><td>TERMICA_VENDAS_02 (BEMATECH MP-4200)</td><td>192.168.13.73</td><td>00072529E024</td></tr>				
-				
-				<tr align="center"><td>LEITOR DE PREÇO MOTOROLA 01</td><td>192.168.13.81</td><td>002368F78A8C</td></tr>
-				<tr align="center"><td>LEITOR DE PREÇO MOTOROLA 02</td><td>192.168.13.82</td><td>002368F78A84</td></tr>
-				<tr align="center"><td>LEITOR DE PREÇO MOTOROLA 03</td><td>192.168.13.83</td><td>002368F78B08</td></tr>
-				<tr align="center"><td>LEITOR DE PREÇO MOTOROLA 04</td><td>192.168.13.84</td><td>002368F78BCB</td></tr>
-				<tr align="center"><td>NO-BREAK</td><td>192.168.13.90</td><td>0003EA020367</td></tr>
-				<tr align="center"><td>IMPRESSORA TÉRMICA CAIXA 01 (DARUMA DR700)</td><td>192.168.13.91</td><td>10880F0065F9</td></tr>
-				<tr align="center"><td>IMPRESSORA TÉRMICA CAIXA 02 (DARUMA DR700)</td><td>192.168.13.92</td><td>10880F006658</td></tr>
-				<tr align="center"><td>IMPRESSORA TÉRMICA CAIXA 03 (DARUMA DR700)</td><td>192.168.13.93</td><td>10880F0065F8</td></tr>
-				<tr align="center"><td>REP DIMEP</td><td>192.168.13.97</td><td>9C4563011AA2</td></tr>
-				<tr align="center"><td>SWARP (SHERWIN WILLIAMS)</td><td>192.168.13.100</td><td>705A0F69A739</td></tr>
-				<tr align="center"><td>ARPRADIO (PC LENOVO WIN10)</td><td>192.168.13.130</td><td> </td></tr>
-				<tr align="center"><td>IMPRESSORA LASER CAIXA (HP M404DW)</td><td>192.168.13.190</td><td>D4856437DA24</td></tr>
-				<tr align="center"><td>IMPRESSORA LASER CADASTRO (HP P2050N)</td><td>192.168.13.191</td><td>68B5996931DE</td></tr>
-				<tr align="center"><td>AP. MOTOROLA 03 (DEPÓSITO)</td><td>192.168.13.200</td><td>84248D19B054</td></tr>				
-				<tr align="center"><td>AP. MOTOROLA 02</td><td>192.168.13.210</td><td>84248D1A73CC</td></tr>
-				<tr align="center"><td>AP. MOTOROLA 01</td><td>192.168.13.212</td><td>84248D1A7430</td></tr>	
-				<tr align="center"><td>ARPNOTGERENCIA1</td><td>DHCP</td><td>641C677D9287 (CABO)</td></tr>					
-				<tr align="center"><td>SWITCH HP V1910-24G</td><td>192.168.13.240</td><td>44319209b521</td></tr>
-			
-				</table>
-  </div>
+        <section class="rede-form" id="form-rede">
+            <h3><?= $editar ? 'Editar equipamento' : 'Cadastrar equipamento' ?></h3>
+            <form method="post" autocomplete="off">
+                <input type="hidden" name="csrf_token" value="<?= rede_h($csrf) ?>">
+                <input type="hidden" name="acao" value="salvar">
+                <input type="hidden" name="id" value="<?= (int)($editar['id'] ?? 0) ?>">
+
+                <div class="rede-grid">
+                    <div>
+                        <label for="rede-host">HOST *</label>
+                        <input id="rede-host" name="host" maxlength="180" required
+                               value="<?= rede_h($editar['host'] ?? '') ?>">
+                    </div>
+                    <div>
+                        <label for="rede-ip">IP *</label>
+                        <input id="rede-ip" name="ip" maxlength="80" required
+                               placeholder="IP, DHCP ou faixa"
+                               value="<?= rede_h($editar['ip'] ?? '') ?>">
+                    </div>
+                    <div>
+                        <label for="rede-mac">MAC</label>
+                        <input id="rede-mac" name="mac" maxlength="120"
+                               value="<?= rede_h($editar['mac'] ?? '') ?>">
+                    </div>
+                </div>
+
+                <div class="rede-actions" style="margin-top:14px">
+                    <button class="rede-btn rede-primary" type="submit">
+                        <?= $editar ? 'Salvar alterações' : 'Cadastrar equipamento' ?>
+                    </button>
+                    <?php if ($editar): ?>
+                        <a class="rede-btn rede-muted" href="<?= rede_h(strtok($_SERVER['REQUEST_URI'], '?')) ?>">Cancelar</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </section>
+
+        <div class="rede-table-wrap">
+            <table class="rede-table">
+                <thead>
+                    <tr><th>HOST</th><th>IP</th><th>MAC</th><th>AÇÕES</th></tr>
+                </thead>
+                <tbody>
+                <?php if (!$equipamentos): ?>
+                    <tr><td colspan="4">Nenhum equipamento encontrado.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($equipamentos as $equipamento): ?>
+                        <tr>
+                            <td><?= rede_h($equipamento['host']) ?></td>
+                            <td><?= rede_h($equipamento['ip']) ?></td>
+                            <td><?= rede_h($equipamento['mac']) ?></td>
+                            <td>
+                                <div class="rede-actions" style="justify-content:center">
+                                    <a class="rede-btn rede-secondary"
+                                       href="?editar=<?= (int)$equipamento['id'] ?>#form-rede">Editar</a>
+                                    <form method="post" onsubmit="return confirm('Confirma a exclusão deste equipamento?');">
+                                        <input type="hidden" name="csrf_token" value="<?= rede_h($csrf) ?>">
+                                        <input type="hidden" name="acao" value="excluir">
+                                        <input type="hidden" name="id" value="<?= (int)$equipamento['id'] ?>">
+                                        <button class="rede-btn rede-danger" type="submit">Excluir</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <p style="margin-top:14px"><strong>Total:</strong> <?= count($equipamentos) ?> equipamento(s)</p>
+    </div>
 </div>
+
 <script src="script.js"></script>
 </body>
 </html>

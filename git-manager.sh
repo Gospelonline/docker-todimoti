@@ -62,12 +62,12 @@ sensitive_staged_check() {
   local bad=0 f
   while IFS= read -r -d '' f; do
     case "$f" in
-      .env|.env.*|*.sql|*.sql.gz|*.dump|*.bak|backup*|mariadb/*|*/mariadb/*)
+      .env|.env.*|*.sql|*.sql.gz|*.dump|*.bak|backup/*|*/backup/*|mariadb/*|*/mariadb/*)
         printf 'BLOQUEADO: arquivo potencialmente sensível preparado: %s\n' "$f"
         bad=1
         ;;
     esac
-  done < <(git diff --cached --name-only -z)
+  done < <(git diff --cached --diff-filter=ACMRTUXB --name-only -z)
   return "$bad"
 }
 

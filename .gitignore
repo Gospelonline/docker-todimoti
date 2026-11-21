@@ -14,3 +14,7 @@ site/logs/
 *.bak
 *.old
 *.bkp
+
+# Backups do banco de dados
+backup/
+instalar_rede.sql
