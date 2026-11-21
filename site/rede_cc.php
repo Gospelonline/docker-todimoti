@@ -42,7 +42,7 @@
 				<tr align="center"><td>IMPRESSORA DARUMA CAIXA 02</td><td>192.168.9.92</td><td>10880F0065EF</td></tr>
 				<tr align="center"><td>REP DIMEP (PRINTPOINT II)</td><td>192.168.9.97</td><td>9C4563011417</td></tr>
 
-				<tr align="center"><td>CCSW01</td><td>192.168.9.100</td><td> </td></tr>
+				<tr align="center"><td>CCSW01</td><td>192.168.9.100</td><td>641C67BA5C60</td></tr>
 				
 		        	<tr align="center"><td>CCVENDAS1 (HP T430)</td><td>192.168.9.101</td><td>6C02E04C60D4</td></tr>
 				<tr align="center"><td>CCVENDAS2 (HP T430)</td><td>192.168.9.102</td><td>6C02E04C61EE</td></tr>
@@ -58,6 +58,7 @@
 				<tr align="center"><td>CCVENDAS8 (HP T430)</td><td>192.168.9.113</td><td>6C02E04C6237</td></tr>
 				<tr align="center"><td>CCVENDAS9 (HP T430)</td><td>192.168.9.114</td><td>6C02E04C621C</td></tr>
 				<tr align="center"><td>CCVENDAS10 (HP T430)</td><td>192.168.9.115</td><td>6C02E04C1EF</td></tr>			
+				<tr align="center"><td>CCRADIO (LENOVO V520S)</td><td>192.168.9.130</td><td>641C679A0378</td></tr>			
 				
 				<tr align="center"><td>IMPRESSORA LASER CAIXA (HP P2055DN)</td><td>192.168.9.190</td><td>D4856437CA69</td></tr>
 				<tr align="center"><td>IMPRESSORA LASER CADASTRO (HP M404DW)</td><td>192.168.9.191</td><td>D4856437EA0D</td></tr>
@@ -65,7 +66,7 @@
 				
 				<tr align="center"><td>POOL DHCP - SERVIDOR</td><td>192.168.9.220-254</td><td></td></tr>
 
-				<tr align="center"><td>CCNOTGERENCIA1</td><td>DHCP</td><td></td></tr>
+				<tr align="center"><td>CCNOTGERENCIA1</td><td>DHCP</td><td>5891CF630ED4</td></tr>
 
 				<tr align="center"><td>AP. MOTOROLA CC-01 (CAIXAS)</td><td>192.168.9.221</td><td>84248D1A7338</td></tr>
 				<tr align="center"><td>AP. MOTOROLA CC-03 (PISOS)</td><td>192.168.9.222</td><td>84248D1A7404</td></tr>
