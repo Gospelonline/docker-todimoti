@@ -389,6 +389,59 @@ body.light .rede-form input::placeholder {
     margin: 1px 2px !important;
 }
 
+
+
+/* ===== Edição diretamente na linha ===== */
+.rede-table .rede-inline-input {
+    display: none;
+    width: 100%;
+    min-width: 70px;
+    box-sizing: border-box;
+    padding: 5px 6px;
+    border: 1px solid #0d6efd;
+    border-radius: 4px;
+    background: #383838;
+    color: #fff;
+    font-size: 13px;
+}
+
+body.light .rede-table .rede-inline-input {
+    background: #fff;
+    color: #212529;
+    border-color: #0d6efd;
+}
+
+.rede-table tr.is-editing {
+    background: rgba(13, 110, 253, .12) !important;
+}
+
+.rede-table tr.is-editing .rede-view {
+    display: none;
+}
+
+.rede-table tr.is-editing .rede-inline-input {
+    display: inline-block;
+}
+
+.rede-table .rede-inline-save {
+    display: none;
+    background: #198754;
+    color: #fff;
+}
+
+.rede-table tr.is-editing .rede-inline-save {
+    display: inline-block;
+}
+
+.rede-table tr.is-editing .rede-inline-toggle {
+    background: #6c757d;
+    color: #fff;
+}
+
+.rede-table .rede-inline-form {
+    display: none;
+}
+
 </style>
 
     <?php if ($flash): ?>
@@ -460,25 +513,66 @@ body.light .rede-form input::placeholder {
                 <?php if (!$equipamentos): ?>
                     <tr><td colspan="4">Nenhum equipamento encontrado.</td></tr>
                 <?php else: ?>
-                    <?php foreach ($equipamentos as $equipamento): ?>
-                        <tr>
-                            <td><?= rede_h($equipamento['host']) ?></td>
-                            <td><?= rede_h($equipamento['ip']) ?></td>
-                            <td><?= rede_h($equipamento['mac']) ?></td>
-                            <td>
-                                <div class="rede-actions" style="justify-content:center">
-                                    <a class="rede-btn rede-secondary"
-                                       href="?editar=<?= (int)$equipamento['id'] ?>#form-rede">Editar</a>
-                                    <form method="post" onsubmit="return confirm('Confirma a exclusão deste equipamento?');">
-                                        <input type="hidden" name="csrf_token" value="<?= rede_h($csrf) ?>">
-                                        <input type="hidden" name="acao" value="excluir">
-                                        <input type="hidden" name="id" value="<?= (int)$equipamento['id'] ?>">
-                                        <button class="rede-btn rede-danger" type="submit">Excluir</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                    
+<?php foreach ($equipamentos as $equipamento): ?>
+    <?php $idLinha = (int)$equipamento['id']; ?>
+    <?php $formLinha = 'rede-edit-' . $idLinha; ?>
+    <tr class="rede-row">
+        <td>
+            <span class="rede-view"><?= rede_h($equipamento['host']) ?></span>
+            <?php if ($pode_editar): ?>
+            <input class="rede-inline-input" type="text" name="host"
+                   form="<?= rede_h($formLinha) ?>" maxlength="180" required
+                   value="<?= rede_h($equipamento['host']) ?>">
+            <?php endif; ?>
+        </td>
+        <td>
+            <span class="rede-view"><?= rede_h($equipamento['ip']) ?></span>
+            <?php if ($pode_editar): ?>
+            <input class="rede-inline-input" type="text" name="ip"
+                   form="<?= rede_h($formLinha) ?>" maxlength="80" required
+                   value="<?= rede_h($equipamento['ip']) ?>">
+            <?php endif; ?>
+        </td>
+        <td>
+            <span class="rede-view"><?= rede_h($equipamento['mac']) ?></span>
+            <?php if ($pode_editar): ?>
+            <input class="rede-inline-input" type="text" name="mac"
+                   form="<?= rede_h($formLinha) ?>" maxlength="120"
+                   value="<?= rede_h($equipamento['mac']) ?>">
+            <?php endif; ?>
+        </td>
+        <td>
+            <div class="rede-actions" style="justify-content:center">
+                <?php if ($pode_editar): ?>
+                    <form id="<?= rede_h($formLinha) ?>" class="rede-inline-form"
+                          method="post">
+                        <input type="hidden" name="csrf_token" value="<?= rede_h($csrf) ?>">
+                        <input type="hidden" name="acao" value="salvar">
+                        <input type="hidden" name="id" value="<?= $idLinha ?>">
+                    </form>
+
+                    <button type="button"
+                            class="rede-btn rede-secondary rede-inline-toggle"
+                            onclick="redeToggleRow(this)">Editar</button>
+
+                    <button type="submit"
+                            form="<?= rede_h($formLinha) ?>"
+                            class="rede-btn rede-inline-save">Salvar</button>
+
+                    <form method="post"
+                          onsubmit="return confirm('Confirma a exclusão deste equipamento?');">
+                        <input type="hidden" name="csrf_token" value="<?= rede_h($csrf) ?>">
+                        <input type="hidden" name="acao" value="excluir">
+                        <input type="hidden" name="id" value="<?= $idLinha ?>">
+                        <button class="rede-btn rede-danger" type="submit">Excluir</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </td>
+    </tr>
+<?php endforeach; ?>
+
                 <?php endif; ?>
                 </tbody>
             </table>
@@ -487,6 +581,46 @@ body.light .rede-form input::placeholder {
         <p style="margin-top:14px"><strong>Total:</strong> <?= count($equipamentos) ?> equipamento(s)</p>
     </div>
 </div>
+
+
+<script>
+function redeToggleRow(botao) {
+    const linha = botao.closest('tr');
+    if (!linha) return;
+
+    // Permite somente uma linha em edição por vez.
+    document.querySelectorAll('.rede-table tr.is-editing').forEach(function (outra) {
+        if (outra !== linha) {
+            redeCancelarLinha(outra);
+        }
+    });
+
+    if (linha.classList.contains('is-editing')) {
+        redeCancelarLinha(linha);
+        return;
+    }
+
+    linha.classList.add('is-editing');
+    botao.textContent = 'Cancelar';
+
+    const salvar = linha.querySelector('.rede-inline-save');
+    if (salvar) salvar.style.display = 'inline-block';
+}
+
+function redeCancelarLinha(linha) {
+    linha.querySelectorAll('.rede-inline-input').forEach(function (campo) {
+        campo.value = campo.defaultValue;
+    });
+
+    linha.classList.remove('is-editing');
+
+    const botao = linha.querySelector('.rede-inline-toggle');
+    if (botao) botao.textContent = 'Editar';
+
+    const salvar = linha.querySelector('.rede-inline-save');
+    if (salvar) salvar.style.display = 'none';
+}
+</script>
 
 <script src="script.js"></script>
 </body>
