@@ -202,7 +202,42 @@ unset($_SESSION['rede_flash']);
 ?>
 
 <div class="content" id="content">
-    <h2><?= rede_h(REDE_TITULO) ?></h2>
+    
+<?php
+// Ordena pelo último octeto do IPv4 em ordem crescente.
+// Para faixas, considera o primeiro endereço IPv4 informado.
+if (isset($equipamentos) && is_array($equipamentos)) {
+    usort($equipamentos, function ($a, $b) {
+        $ipA = (string)($a['ip'] ?? '');
+        $ipB = (string)($b['ip'] ?? '');
+
+        preg_match('/(?:\d{1,3}\.){3}\d{1,3}/', $ipA, $matchA);
+        preg_match('/(?:\d{1,3}\.){3}\d{1,3}/', $ipB, $matchB);
+
+        $enderecoA = $matchA[0] ?? '';
+        $enderecoB = $matchB[0] ?? '';
+
+        $validoA = $enderecoA !== '' && filter_var($enderecoA, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+        $validoB = $enderecoB !== '' && filter_var($enderecoB, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+
+        if (!$validoA && !$validoB) return strnatcasecmp($ipA, $ipB);
+        if (!$validoA) return 1;
+        if (!$validoB) return -1;
+
+        $ultimoA = (int)substr($enderecoA, strrpos($enderecoA, '.') + 1);
+        $ultimoB = (int)substr($enderecoB, strrpos($enderecoB, '.') + 1);
+
+        if ($ultimoA !== $ultimoB) return $ultimoA <=> $ultimoB;
+
+        $comparacao = ip2long($enderecoA) <=> ip2long($enderecoB);
+        if ($comparacao !== 0) return $comparacao;
+
+        return strnatcasecmp((string)($a['host'] ?? ''), (string)($b['host'] ?? ''));
+    });
+}
+?>
+
+<h2><?= rede_h(REDE_TITULO) ?></h2>
 
     <style>
         .rede-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
