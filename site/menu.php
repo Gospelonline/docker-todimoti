@@ -1,5 +1,6 @@
 <?php		
-require ("lib/validador.php");	
+require ("lib/validador.php");
+require_once "lib/permissoes.php";	
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -193,5 +194,15 @@ require ("lib/validador.php");
 					<li><a href="msdos_reparo.php"> 🔹 <span class="texto">Reparo Windows</a></li>
 					<li><a href="powershell.php"> 🔹 <span class="texto">Comandos Powershell</a></li>
 	</ul></li>        
-      </ul>
+      
+<?php if (usuario_e_admin()): ?>
+<li class="has-submenu">
+<a href="#">⚙️ <span class="texto">Administração</span> ▼</a>
+<ul class="submenu">
+<li><a href="gerenciar_usuarios.php">🔹 <span class="texto">Gerenciar Usuários</span></a></li>
+</ul>
+</li>
+<?php endif; ?>
+
+</ul>
     </nav>

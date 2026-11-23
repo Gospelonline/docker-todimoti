@@ -16,6 +16,21 @@ require_once __DIR__ . '/conexao.php';
 // já implementada nele. A autorização real deve ser validada no login/menu do site.
 include __DIR__ . '/menu.php';
 
+require_once __DIR__ . '/lib/permissoes.php';
+$pode_editar = usuario_e_admin();
+
+if (!$pode_editar) {
+    echo '<style>
+        #form-rede,
+        a[href="#form-rede"],
+        a[href*="editar="],
+        form[onsubmit] {
+            display: none !important;
+        }
+    </style>';
+}
+
+
 const REDE_FILIAL = 'cdpr';
 const REDE_TITULO = 'CD-PR (Londrina-PR)';
 
@@ -34,6 +49,8 @@ if (!isset($_SESSION['rede_csrf'])) {
 $csrf = $_SESSION['rede_csrf'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    exigir_admin();
+
     $token = $_POST['csrf_token'] ?? '';
     if (!is_string($token) || !hash_equals($csrf, $token)) {
         http_response_code(403);
@@ -212,7 +229,130 @@ unset($_SESSION['rede_flash']);
         @media(max-width:700px){.rede-grid{grid-template-columns:1fr}.rede-search input{min-width:0;flex:1}.rede-toolbar{align-items:stretch}}
     
         .rede-form label, .rede-form h3 { color: #4A4A4A !important; }
-        </style>
+        
+
+/* ===== Formulário de rede: suporte aos dois temas ===== */
+
+/* Dark mode */
+body:not(.light) .rede-form {
+    background: #2b2b2b !important;
+    color: #f1f1f1 !important;
+    border: 1px solid #444 !important;
+}
+
+body:not(.light) .rede-form h3,
+body:not(.light) .rede-form label {
+    color: #f1f1f1 !important;
+}
+
+body:not(.light) .rede-form input {
+    background: #383838 !important;
+    color: #f5f5f5 !important;
+    border: 1px solid #555 !important;
+}
+
+body:not(.light) .rede-form input::placeholder {
+    color: #bdbdbd !important;
+}
+
+/* Light mode */
+body.light .rede-form {
+    background: #fff !important;
+    color: #212529 !important;
+    border: 1px solid #ddd !important;
+}
+
+body.light .rede-form h3,
+body.light .rede-form label {
+    color: #4a4a4a !important;
+}
+
+body.light .rede-form input {
+    background: #fff !important;
+    color: #212529 !important;
+    border: 1px solid #ccc !important;
+}
+
+body.light .rede-form input::placeholder {
+    color: #777 !important;
+}
+
+
+
+/* ===== Compactação do formulário de rede ===== */
+
+.rede-form {
+    padding: 12px !important;
+    margin: 10px 0 !important;
+}
+
+.rede-form h3 {
+    font-size: 16px !important;
+    margin: 0 0 8px !important;
+    line-height: 1.3 !important;
+}
+
+.rede-form label {
+    font-size: 12px !important;
+    margin: 5px 0 3px !important;
+    line-height: 1.2 !important;
+}
+
+.rede-form input {
+    padding: 7px 9px !important;
+    font-size: 13px !important;
+    height: 34px;
+}
+
+.rede-grid {
+    gap: 9px !important;
+}
+
+.rede-form .rede-actions {
+    margin-top: 8px !important;
+    gap: 6px !important;
+}
+
+.rede-form .rede-btn {
+    padding: 7px 11px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+
+.rede-toolbar {
+    margin-bottom: 12px !important;
+}
+
+
+
+/* ===== Compactação da tabela de equipamentos ===== */
+
+.rede-table {
+    font-size: 13px !important;
+}
+
+.rede-table th {
+    padding: 7px 8px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+}
+
+.rede-table td {
+    padding: 5px 8px !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+}
+
+.rede-table td .rede-btn,
+.rede-table td button,
+.rede-table td a {
+    padding: 5px 9px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    margin: 1px 2px !important;
+}
+
+</style>
 
     <?php if ($flash): ?>
         <div class="rede-alert <?= ($flash['tipo'] ?? '') === 'success' ? 'rede-success' : 'rede-error' ?>">
